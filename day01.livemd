@@ -1,0 +1,114 @@
+# AoC 2021 Day 1
+
+## Setup
+
+```elixir
+Mix.install([
+  :kino,
+  {:nx, github: "elixir-nx/nx", sparse: "nx"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_integer/1)
+|> Enum.chunk_every(2, 1, :discard)
+|> Enum.count(fn [left, right] -> right > left end)
+```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_integer/1)
+|> Enum.chunk_every(3, 1, :discard)
+|> Enum.chunk_every(2, 1, :discard)
+|> Enum.count(fn [[left, m1, m2], [m1, m2, right]] -> right > left end)
+```
+
+## Part 1 - Nx
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+tensor =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.to_integer/1)
+  |> Nx.tensor()
+
+Nx.greater(tensor[1..-1//1], tensor[0..-2//1])
+|> Nx.sum()
+|> Nx.to_number()
+```
+
+## Part 2 - Nx
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_integer/1)
+|> Nx.tensor()
+|> Nx.window_sum({3})
+|> then(fn tensor ->
+  Nx.greater(tensor[1..-1//1], tensor[0..-2//1])
+end)
+|> Nx.sum()
+|> Nx.to_number()
+```
+
+## Part 1 - Recursion
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Recursion do
+  def recur([left, right | tail], acc) when right > left, do: recur([right | tail], acc + 1)
+  def recur([_left, right | tail], acc), do: recur([right | tail], acc)
+  def recur([_], acc), do: acc
+end
+
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_integer/1)
+|> Recursion.recur(0)
+```
+
+## Part 2 - Recursion
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Recursion do
+  def recur([left, m1, m2, right | tail], acc) when right > left,
+    do: recur([m1, m2, right | tail], acc + 1)
+
+  def recur([_left, m1, m2, right | tail], acc), do: recur([m1, m2, right | tail], acc)
+  def recur([_, _, _], acc), do: acc
+end
+
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(&String.to_integer/1)
+|> Recursion.recur(0)
+```

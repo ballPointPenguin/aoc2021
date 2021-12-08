@@ -1,6 +1,8 @@
 # Aoc2021
 
-**TODO: Add description**
+Solutions to https://adventofcode.com/2021 Puzzles using Elixir
+
+Special Thanks to Jose Valim and his work here https://github.com/josevalim/aoc
 
 ## Installation
 

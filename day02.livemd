@@ -1,0 +1,56 @@
+# Day02
+
+## Setup
+
+```elixir
+Mix.install([:kino])
+```
+
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Day2 do
+  def process({:forward, value}, [length, depth]), do: [length + value, depth]
+  def process({:down, value}, [length, depth]), do: [length, depth + value]
+  def process({:up, value}, [length, depth]), do: [length, depth - value]
+
+  def navigate([{dir, val}], acc), do: process({dir, val}, acc)
+  def navigate([{dir, val} | tail], acc), do: navigate(tail, process({dir, val}, acc))
+end
+
+input
+|> Kino.Input.read()
+|> String.split("\n")
+|> Enum.map(&String.split/1)
+|> Enum.map(fn [direction, value] -> {String.to_atom(direction), String.to_integer(value)} end)
+|> Day2.navigate([0, 0])
+|> Enum.product()
+```
+
+## Part 2
+
+```elixir
+defmodule Day2 do
+  def process({:forward, value}, [length, depth]), do: [length + value, depth]
+  def process({:down, value}, [length, depth]), do: [length, depth + value]
+  def process({:up, value}, [length, depth]), do: [length, depth - value]
+
+  def navigate([{dir, val}], acc), do: process({dir, val}, acc)
+  def navigate([{dir, val} | tail], acc), do: navigate(tail, process({dir, val}, acc))
+end
+
+input
+|> Kino.Input.read()
+|> String.split("\n")
+|> Enum.map(&String.split/1)
+|> Enum.map(fn [direction, value] -> {String.to_atom(direction), String.to_integer(value)} end)
+|> Day2.navigate(aim: 0, depth: 0, length: 0)
+
+# |> Enum.product
+```

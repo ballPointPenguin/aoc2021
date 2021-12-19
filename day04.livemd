@@ -1,0 +1,25 @@
+# Day 04
+
+## Setup
+
+```elixir
+
+```
+
+## Part 1
+
+```elixir
+
+```
+
+## Scratch
+
+```elixir
+
+```
+
+## Part 2
+
+```elixir
+
+```

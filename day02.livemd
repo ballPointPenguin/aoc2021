@@ -10,7 +10,7 @@ Mix.install([:kino])
 input = Kino.Input.textarea("Puzzle Input")
 ```
 
-## Part 1
+## Part 1 Recursive
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
@@ -33,16 +33,34 @@ input
 |> Enum.product()
 ```
 
-## Part 2
+## Part 1 Full Pipe
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n")
+|> Enum.map(&String.split/1)
+|> Enum.map(fn [direction, value] -> {String.to_atom(direction), String.to_integer(value)} end)
+|> Enum.reduce([0, 0], fn
+  {:forward, value}, [length, depth] -> [length + value, depth]
+  {:down, value}, [length, depth] -> [length, depth + value]
+  {:up, value}, [length, depth] -> [length, depth - value]
+end)
+|> Enum.product()
+```
+
+## Part 2 Recursive
 
 ```elixir
 defmodule Day2 do
-  def process({:forward, value}, [length, depth]), do: [length + value, depth]
-  def process({:down, value}, [length, depth]), do: [length, depth + value]
-  def process({:up, value}, [length, depth]), do: [length, depth - value]
+  def process({:forward, value}, {aim, depth, length}),
+    do: {aim, depth + aim * value, length + value}
 
-  def navigate([{dir, val}], acc), do: process({dir, val}, acc)
-  def navigate([{dir, val} | tail], acc), do: navigate(tail, process({dir, val}, acc))
+  def process({:down, value}, {aim, depth, length}), do: {aim + value, depth, length}
+  def process({:up, value}, {aim, depth, length}), do: {aim - value, depth, length}
+
+  def navigate([{dir, value}], acc), do: process({dir, value}, acc)
+  def navigate([{dir, value} | tail], acc), do: navigate(tail, process({dir, value}, acc))
 end
 
 input
@@ -50,7 +68,22 @@ input
 |> String.split("\n")
 |> Enum.map(&String.split/1)
 |> Enum.map(fn [direction, value] -> {String.to_atom(direction), String.to_integer(value)} end)
-|> Day2.navigate(aim: 0, depth: 0, length: 0)
+|> Day2.navigate({0, 0, 0})
+|> then(fn {_aim, depth, length} -> depth * length end)
+```
 
-# |> Enum.product
+## Part 2 Full Pipe
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n")
+|> Enum.map(&String.split/1)
+|> Enum.map(fn [direction, value] -> {String.to_atom(direction), String.to_integer(value)} end)
+|> Enum.reduce([0, 0, 0], fn
+  {:forward, value}, [aim, depth, length] -> [aim, depth + aim * value, length + value]
+  {:down, value}, [aim, depth, length] -> [aim + value, depth, length]
+  {:up, value}, [aim, depth, length] -> [aim - value, depth, length]
+end)
+|> then(fn [_aim, depth, length] -> depth * length end)
 ```

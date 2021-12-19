@@ -1,0 +1,120 @@
+# Day03
+
+## Setup
+
+```elixir
+Mix.install([:kino])
+import Bitwise
+```
+
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Part 1 First Try
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+{matrix, initial} =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn bstring -> String.codepoints(bstring) end)
+  |> then(fn [head | tail] -> {[head | tail], for(_i <- 1..length(head), do: 0)} end)
+
+sums =
+  Enum.reduce(matrix, initial, fn row, acc ->
+    for i <- 0..(length(initial) - 1) do
+      String.to_integer(Enum.at(row, i)) + Enum.at(acc, i)
+    end
+  end)
+
+Enum.map(sums, fn sum -> sum >= length(matrix) / 2 end)
+|> Enum.reduce(["", ""], fn bool, [gammabin, epsilonbin] ->
+  case bool do
+    true ->
+      [gammabin <> "1", epsilonbin <> "0"]
+
+    false ->
+      [gammabin <> "0", epsilonbin <> "1"]
+  end
+end)
+|> Enum.map(fn bstring -> String.to_integer(bstring, 2) end)
+|> Enum.product()
+```
+
+## Part 1 Refactor
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+matrix =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(
+    &(&1
+      |> String.split("", trim: true)
+      |> Enum.map(fn char -> String.to_integer(char) end))
+  )
+
+row_count = length(matrix)
+row_length = length(List.first(matrix))
+# 0b111111111111
+bitmask = 2 ** row_length - 1
+
+for position <- 0..(row_length - 1) do
+  matrix
+  |> Enum.map(&Enum.at(&1, position))
+  |> Enum.sum()
+  |> then(fn sum -> if sum > div(row_count, 2), do: ?1, else: ?0 end)
+end
+|> List.to_integer(2)
+# create the inverse binary list
+|> then(&[&1, bnot(&1) &&& bitmask])
+|> Enum.product()
+```
+
+## Part 2 First Try
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Day3 do
+  def process([final_row], _, _) do
+    final_row
+    |> Enum.join()
+    |> String.to_charlist()
+    |> List.to_integer(2)
+  end
+
+  def process(rows, position, chemical) do
+    mostly_ones =
+      rows
+      |> Enum.map(&Enum.at(&1, position))
+      |> Enum.sum()
+      |> then(fn sum -> sum >= length(rows) / 2 end)
+
+    criterion = (chemical == :o2 == mostly_ones && 1) || 0
+
+    selected_rows = Enum.filter(rows, fn row -> Enum.at(row, position) == criterion end)
+    process(selected_rows, position + 1, chemical)
+  end
+end
+
+matrix =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(
+    &(&1
+      |> String.split("", trim: true)
+      |> Enum.map(fn char -> String.to_integer(char) end))
+  )
+
+for chemical <- [:o2, :co2] do
+  Day3.process(matrix, 0, chemical)
+end
+|> Enum.product()
+```

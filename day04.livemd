@@ -250,7 +250,7 @@ boards =
 number * Board.unmarked_sum(board)
 ```
 
-## Part 1 Refactor module
+## Module Refactor
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
@@ -284,7 +284,7 @@ defmodule MyBoard do
   def play({numbers, boards}) do
     numbers
     |> Enum.reduce_while(boards, fn number, boards ->
-      marked_boards = Enum.map(boards, &MyBoard.mark(number, &1))
+      marked_boards = Enum.map(boards, &MyBoard.mark(&1, number))
 
       if board = Enum.find(marked_boards, &MyBoard.won?/1) do
         {:halt, {number, board}}
@@ -294,25 +294,18 @@ defmodule MyBoard do
     end)
   end
 
-  def play_all({numbers, boards}) do
-    numbers
-    |> Enum.reduce_while(boards, fn number, boards ->
-      marked_boards = Enum.map(boards, &MyBoard.mark(number, &1))
-      active_boards = Enum.reject(marked_boards, &MyBoard.won?/1)
-
-      case active_boards do
-        [] ->
-          # assume one board finished last
-          final_board = List.first(marked_boards)
-          {:halt, {number, final_board}}
-
-        _ ->
-          {:cont, active_boards}
-      end
-    end)
+  def play_all([board], [number | _]) do
+    {number, MyBoard.mark(board, number)}
   end
 
-  def mark(number, board) do
+  def play_all(boards, [number | numbers]) do
+    boards
+    |> Enum.map(&MyBoard.mark(&1, number))
+    |> Enum.reject(&MyBoard.won?/1)
+    |> MyBoard.play_all(numbers)
+  end
+
+  def mark(board, number) do
     case board do
       %{^number => {row, col, false}} ->
         put_in(board, [number], {row, col, true})
@@ -367,11 +360,11 @@ end)
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-MyBoard.process_input(input)
-|> MyBoard.play_all()
-|> then(fn {number, board} ->
-  MyBoard.unmarked_sum(board) * number
-end)
+{numbers, boards} = MyBoard.process_input(input)
+
+{number, board} = MyBoard.play_all(boards, numbers)
+
+number * MyBoard.unmarked_sum(board)
 ```
 
 ## Scratch

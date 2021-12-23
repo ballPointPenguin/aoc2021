@@ -1,0 +1,98 @@
+# Day 05
+
+## Setup
+
+```elixir
+Mix.install([:kino])
+```
+
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Part 1 First Try
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(
+  &(&1
+    |> String.replace(~r/(\d+),(\d+)\D*(\d+),(\d+)/, "\\1 \\2 \\3 \\4")
+    |> String.split()
+    |> Enum.map(fn n -> String.to_integer(n) end))
+)
+|> Enum.filter(fn [x1, y1, x2, y2] -> x1 == x2 or y1 == y2 end)
+|> Enum.map(fn coords ->
+  case coords do
+    [x, y1, x, y2] ->
+      for y <- y1..y2, do: {x, y}
+
+    [x1, y, x2, y] ->
+      for x <- x1..x2, do: {x, y}
+  end
+end)
+|> List.flatten()
+|> Enum.frequencies()
+|> Map.values()
+|> Enum.filter(&(&1 > 1))
+|> length()
+```
+
+## Part 2 First Try
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(
+  &(&1
+    |> String.replace(~r/(\d+),(\d+)\D*(\d+),(\d+)/, "\\1 \\2 \\3 \\4")
+    |> String.split()
+    |> Enum.map(fn n -> String.to_integer(n) end))
+)
+|> Enum.map(fn [x1, y1, x2, y2] ->
+  cond do
+    x1 == x2 ->
+      for y <- y1..y2, do: {x1, y}
+
+    y1 == y2 ->
+      for x <- x1..x2, do: {x, y1}
+
+    x1 - x2 == y1 - y2 or x1 - x2 == (y1 - y2) * -1 ->
+      Enum.zip(x1..x2, y1..y2)
+
+    true ->
+      []
+  end
+end)
+|> List.flatten()
+|> Enum.frequencies()
+|> Map.values()
+|> Enum.filter(&(&1 > 1))
+|> length()
+```
+
+## Scratch
+
+```elixir
+[6, 4, 2, 0]
+# ->
+# {6,4}, {5,3}, {4,2}, {3,1}, {2,0}
+[x1, y1, x2, y2] = [6, 4, 2, 0]
+for x <- x1..x2, do: {x, y1 + x - x1}
+
+[x1, y1, x2, y2] = [8, 0, 0, 8]
+# ->
+# {8,0}, {7,1}, {6,2}, ...
+xs = [8, 7, 6, 5, 4, 3, 2, 1, 0]
+ys = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+Enum.zip(xs, ys)
+
+Enum.zip(x1..x2, y1..y2)
+```

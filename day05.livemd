@@ -3,7 +3,10 @@
 ## Setup
 
 ```elixir
-Mix.install([:kino])
+Mix.install([
+  {:vega_lite, "~> 0.1.2"},
+  {:kino, "~> 0.4.1"}
+])
 ```
 
 ```elixir
@@ -73,22 +76,55 @@ end)
 |> Enum.count(&(&1 > 1))
 ```
 
-## Scratch
+## Part 2 Refactor
+
+<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-[6, 4, 2, 0]
-# ->
-# {6,4}, {5,3}, {4,2}, {3,1}, {2,0}
-[x1, y1, x2, y2] = [6, 4, 2, 0]
-for x <- x1..x2, do: {x, y1 + x - x1}
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(
+  &(&1
+    |> String.split([",", " -> "])
+    |> Enum.map(fn n -> String.to_integer(n) end))
+)
+|> Enum.flat_map(fn
+  [x, y1, x, y2] -> Enum.zip(Stream.cycle([x]), y1..y2)
+  [x1, y, x2, y] -> Enum.zip(x1..x2, Stream.cycle([y]))
+  [x1, y1, x2, y2] -> Enum.zip(x1..x2, y1..y2)
+end)
+|> Enum.frequencies()
+|> Map.values()
+|> Enum.count(&(&1 > 1))
+```
 
-[x1, y1, x2, y2] = [8, 0, 0, 8]
-# ->
-# {8,0}, {7,1}, {6,2}, ...
-xs = [8, 7, 6, 5, 4, 3, 2, 1, 0]
-ys = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+## VegaLite
 
-Enum.zip(xs, ys)
+```elixir
+alias VegaLite, as: Vl
 
-Enum.zip(x1..x2, y1..y2)
+data =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(
+    &(&1
+      |> String.split([",", " -> "])
+      |> Enum.map(fn n -> String.to_integer(n) end))
+  )
+  |> Enum.flat_map(fn
+    [x, y1, x, y2] -> Enum.zip(Stream.cycle([x]), y1..y2)
+    [x1, y, x2, y] -> Enum.zip(x1..x2, Stream.cycle([y]))
+    [x1, y1, x2, y2] -> Enum.zip(x1..x2, y1..y2)
+  end)
+  |> Enum.map(fn {x, y} -> %{x: x, y: y} end)
+
+Vl.new(width: 400, height: 400, background: "white")
+|> Vl.data_from_values(data)
+|> Vl.mark(:circle)
+|> Vl.encode_field(:x, "x", axis: [title: "x"], bin: [maxbins: 50])
+|> Vl.encode_field(:y, "y", axis: [title: "y"], bin: [maxbins: 50])
+|> Vl.encode(:size, aggregate: :count)
+|> Vl.encode(:color, aggregate: :count, scale: [range: ["green", "red"]])
 ```

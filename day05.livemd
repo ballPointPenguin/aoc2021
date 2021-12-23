@@ -10,7 +10,7 @@ Mix.install([:kino])
 input = Kino.Input.textarea("Puzzle Input")
 ```
 
-## Part 1 First Try
+## Part 1
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
@@ -20,8 +20,7 @@ input
 |> String.split("\n", trim: true)
 |> Enum.map(
   &(&1
-    |> String.replace(~r/(\d+),(\d+)\D*(\d+),(\d+)/, "\\1 \\2 \\3 \\4")
-    |> String.split()
+    |> String.split([",", " -> "])
     |> Enum.map(fn n -> String.to_integer(n) end))
 )
 |> Enum.filter(fn [x1, y1, x2, y2] -> x1 == x2 or y1 == y2 end)
@@ -37,11 +36,10 @@ end)
 |> List.flatten()
 |> Enum.frequencies()
 |> Map.values()
-|> Enum.filter(&(&1 > 1))
-|> length()
+|> Enum.count(&(&1 > 1))
 ```
 
-## Part 2 First Try
+## Part 2
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
@@ -51,8 +49,7 @@ input
 |> String.split("\n", trim: true)
 |> Enum.map(
   &(&1
-    |> String.replace(~r/(\d+),(\d+)\D*(\d+),(\d+)/, "\\1 \\2 \\3 \\4")
-    |> String.split()
+    |> String.split([",", " -> "])
     |> Enum.map(fn n -> String.to_integer(n) end))
 )
 |> Enum.map(fn [x1, y1, x2, y2] ->
@@ -73,8 +70,7 @@ end)
 |> List.flatten()
 |> Enum.frequencies()
 |> Map.values()
-|> Enum.filter(&(&1 > 1))
-|> length()
+|> Enum.count(&(&1 > 1))
 ```
 
 ## Scratch

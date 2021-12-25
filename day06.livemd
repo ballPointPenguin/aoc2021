@@ -3,5 +3,146 @@
 ## Setup
 
 ```elixir
+Mix.install([
+  {:vega_lite, "~> 0.1.2"},
+  {:nx, github: "elixir-nx/nx", sparse: "nx"},
+  {:kino, "~> 0.4.1"}
+])
+```
 
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Day6 do
+  def process(fish, 0), do: fish
+
+  def process(fish, days) do
+    fish
+    |> Enum.flat_map(fn
+      0 -> [6, 8]
+      n -> [n - 1]
+    end)
+    |> process(days - 1)
+  end
+end
+
+input
+|> Kino.Input.read()
+|> String.split(",")
+|> Enum.map(&String.to_integer/1)
+|> Day6.process(80)
+|> Enum.count()
+```
+
+## Scratch
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Day6 do
+  def process(fish, 0), do: fish
+
+  def process([d0, d1, d2, d3, d4, d5, d6, d7, d8], days) do
+    process([d1, d2, d3, d4, d5, d6, d7 + d0, d8, d0], days - 1)
+  end
+end
+
+input
+|> Kino.Input.read()
+|> String.split(",")
+|> Enum.map(&String.to_integer/1)
+|> Enum.frequencies()
+|> Enum.into(%{0 => 0, 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0, 6 => 0, 7 => 0, 8 => 0})
+|> Map.values()
+|> Day6.process(256)
+|> Enum.sum()
+```
+
+## Jose Style
+
+```elixir
+frequencies =
+  input
+  |> Kino.Input.read()
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.frequencies()
+
+amounts = Enum.map(0..8, fn i -> frequencies[i] || 0 end) |> List.to_tuple()
+```
+
+## VegaLite
+
+From: https://gist.github.com/jonatanklosko/449485d2308a249c87c1f84c78a1a29c
+
+via https://github.com/josevalim/aoc/blob/main/2021/day-06.livemd
+
+```elixir
+alias VegaLite, as: Vl
+
+graph =
+  Vl.new(height: 300, width: 300)
+  |> Vl.mark(:line)
+  |> Vl.encode_field(:x, "day", type: :quantitative)
+  |> Vl.encode_field(:y, "count", type: :quantitative)
+  |> Kino.VegaLite.new()
+  |> Kino.render()
+
+Kino.VegaLite.periodically(
+  graph,
+  100,
+  {0, amounts},
+  fn {day, {t0, t1, t2, t3, t4, t5, t6, t7, t8} = t} ->
+    count = Tuple.sum(t)
+    Kino.VegaLite.push(graph, %{day: day, count: count})
+
+    if day < 256 do
+      t = {t1, t2, t3, t4, t5, t6, t7 + t0, t8, t0}
+      {:cont, {day + 1, t}}
+    else
+      :halt
+    end
+  end
+)
+```
+
+## Nx
+
+From https://gist.github.com/rhbvkleef/0ec152310954e62999170f70ca8c7489.
+
+via https://github.com/josevalim/aoc/blob/main/2021/day-06.livemd
+
+```elixir
+import Nx, only: :sigils
+
+tensor = Nx.tensor(Enum.map(0..5, fn i -> frequencies[i] || 0 end))
+
+matrix = ~M"""
+0 0 0 0 0 0 1 0 1
+1 0 0 0 0 0 0 0 0
+0 1 0 0 0 0 0 0 0
+0 0 1 0 0 0 0 0 0
+0 0 0 1 0 0 0 0 0
+0 0 0 0 1 0 0 0 0
+0 0 0 0 0 1 0 0 0
+0 0 0 0 0 0 1 0 0
+0 0 0 0 0 0 0 1 0
+"""
+
+final =
+  1..255
+  |> Enum.reduce(matrix, fn _, acc ->
+    Nx.dot(matrix, acc)
+  end)
+  |> Nx.sum(axes: [1])
+
+Nx.dot(tensor, final[0..5])
 ```

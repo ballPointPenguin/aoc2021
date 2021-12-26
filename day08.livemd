@@ -1,0 +1,149 @@
+# Day 8
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+<details>
+  <summary>
+    Example input:
+  </summary>
+
+  ```
+  be cfbegad cbdgef fgaecd cgeb fdcge agebfd fecdb fabcd edb |
+  fdgacbe cefdb cefbgd gcbe
+  edbfga begcd cbg gc gcadebf fbgde acbgfd abcde gfcbed gfec |
+  fcgedb cgb dgebacf gc
+  fgaebd cg bdaec gdafb agbcfd gdcbef bgcad gfac gcb cdgabef |
+  cg cg fdcagb cbg
+  fbegcd cbd adcefb dageb afcb bc aefdc ecdab fgdeca fcdbega |
+  efabcd cedba gadfec cb
+  aecbfdg fbg gf bafeg dbefa fcge gcbea fcaegb dgceab fcbdga |
+  gecf egdcabf bgf bfgea
+  fgeab ca afcebg bdacfeg cfaedg gcfdb baec bfadeg bafgc acf |
+  gebdcfa ecba ca fadegcb
+  dbcfg fgd bdegcaf fgec aegbdf ecdfab fbedc dacgb gdcebf gf |
+  cefg dcbef fcge gbcadfe
+  bdfegc cbegaf gecbf dfcage bdacg ed bedf ced adcbefg gebcd |
+  ed bcgafe cdgba cbgef
+  egadfb cdbfeg cegd fecab cgb gbdefca cg fgcdab egfdb bfceg |
+  gbdfcae bgc cg cgb
+  gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc |
+  fgae cfgab fg bagce
+  ```
+</details>
+
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Process Input
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+signals =
+  input
+  |> Kino.Input.read()
+  |> String.split(["|", "\n"], trim: true)
+  |> Enum.map(&String.split/1)
+  |> Enum.chunk_every(2)
+  |> Enum.map(&List.to_tuple/1)
+```
+
+## Part 1 First Try
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+signals
+|> Enum.map(fn {_input, messages} ->
+  messages
+  |> Enum.map(&String.length/1)
+  |> Enum.filter(fn l -> l in [2, 3, 4, 7] end)
+end)
+|> List.flatten()
+|> Enum.count()
+```
+
+## Part 2 First Try
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Day8 do
+  def process({input, signal}) do
+    [one, seven, four, eight] =
+      for n <- [2, 3, 4, 7] do
+        Enum.filter(input, fn word -> String.length(word) == n end)
+        |> Enum.flat_map(&String.split(&1, "", trim: true))
+      end
+
+    freq_map =
+      input
+      |> Enum.flat_map(&String.split(&1, "", trim: true))
+      |> Enum.frequencies()
+      |> then(fn fm ->
+        for val <- Map.values(fm) do
+          Map.filter(fm, fn {_k, v} -> v == val end)
+          |> then(fn lil_map -> {val, Map.keys(lil_map)} end)
+        end
+        |> Enum.reduce(%{}, fn {k, v}, mapping -> Map.merge(mapping, %{k => v}) end)
+      end)
+
+    %{4 => [e], 6 => [b], 9 => [f]} = freq_map
+
+    [a] = seven -- one
+    [c] = seven -- [a, f]
+    [d] = four -- [b, c, f]
+    [g] = freq_map[7] -- [d]
+
+    zero = [a, b, c, e, f, g]
+    two = [a, c, d, e, g]
+    three = [a, c, d, f, g]
+    five = [a, b, d, f, g]
+    six = [a, b, d, e, f, g]
+    nine = [a, b, c, d, f, g]
+
+    word_map =
+      [zero, one, two, three, four, five, six, seven, eight, nine]
+      |> Enum.map(
+        &(&1
+          |> Enum.sort()
+          |> Enum.join())
+      )
+      |> Enum.zip([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+      |> Enum.into(%{})
+
+    signal
+    |> Enum.map(
+      &(&1
+        |> String.split("", trim: true)
+        |> Enum.sort()
+        |> Enum.join())
+    )
+    |> Enum.map(fn x -> word_map[x] end)
+    |> Enum.join()
+    |> String.to_integer()
+  end
+end
+
+signals
+|> Enum.map(&Day8.process/1)
+|> Enum.sum()
+```
+
+## Part 1 Refactor
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Enum.map(signals, fn {_input, output} ->
+  Enum.count(output, &(byte_size(&1) in [2, 3, 4, 7]))
+end)
+|> Enum.sum()
+```

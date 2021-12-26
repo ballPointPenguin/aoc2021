@@ -1,0 +1,106 @@
+# Day 07
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+Example Data:
+16,1,2,0,4,2,7,1,2,14
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split(",")
+|> Enum.map(&String.to_integer/1)
+|> then(fn initial ->
+  for i <- Enum.min(initial)..Enum.max(initial) do
+    Enum.map(initial, fn p -> abs(i - p) end) |> Enum.sum()
+  end
+  |> Enum.min()
+end)
+```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Day7 do
+  def fuel_recur(0, fuel), do: fuel
+
+  def fuel_recur(dist, fuel) do
+    fuel_recur(dist - 1, fuel + dist)
+  end
+end
+
+initial =
+  input
+  |> Kino.Input.read()
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+
+for i <- Enum.min(initial)..Enum.max(initial) do
+  Enum.map(initial, fn position ->
+    Day7.fuel_recur(abs(position - i), 0)
+  end)
+  |> Enum.sum()
+end
+|> Enum.min()
+```
+
+## Part 1 Refactor
+
+```elixir
+initial_positions =
+  input
+  |> Kino.Input.read()
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+
+median_index = div(length(initial_positions) - 1, 2)
+
+Enum.sort(initial_positions)
+|> Enum.slice(median_index, 2)
+|> Enum.map(fn destination ->
+  Enum.map(initial_positions, fn position ->
+    abs(destination - position)
+  end)
+  |> Enum.sum()
+end)
+|> Enum.min()
+```
+
+## Part 2 Refactor
+
+```elixir
+initial_positions =
+  input
+  |> Kino.Input.read()
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+
+mean = Enum.sum(initial_positions) / length(initial_positions)
+
+floor(mean)..ceil(mean)
+|> Enum.map(fn destination ->
+  Enum.map(initial_positions, fn position ->
+    n = abs(destination - position)
+    (n + 1) * n / 2
+  end)
+  |> Enum.sum()
+  |> floor()
+end)
+|> Enum.min()
+```

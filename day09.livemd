@@ -1,0 +1,203 @@
+# Day 9
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+<details>
+  <summary>
+    Example input:
+  </summary>
+
+  ```
+2199943210
+3987894921
+9856789892
+8767896789
+9899965678
+  ```
+</details>
+
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Process Input
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+heightmap =
+  input
+  |> Kino.Input.read()
+  |> String.split()
+  |> Enum.map(
+    &(&1
+      |> String.split("", trim: true)
+      |> Enum.map(fn n -> String.to_integer(n) end)
+      |> List.to_tuple())
+  )
+  |> List.to_tuple()
+```
+
+## Part 1 First Try
+
+```elixir
+defmodule Day9 do
+  def get_point(_map, {x, y}) when x < 0 or y < 0, do: nil
+  def get_point(map, {x, y}) when x >= tuple_size(elem(map, 0)) or y >= tuple_size(map), do: nil
+  def get_point(map, {x, y}), do: map |> elem(y) |> elem(x)
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+for y <- 0..(tuple_size(heightmap) - 1),
+    x <- 0..(tuple_size(elem(heightmap, 0)) - 1) do
+  point = Day9.get_point(heightmap, {x, y})
+  top = Day9.get_point(heightmap, {x, y - 1})
+  right = Day9.get_point(heightmap, {x + 1, y})
+  bottom = Day9.get_point(heightmap, {x, y + 1})
+  left = Day9.get_point(heightmap, {x - 1, y})
+
+  [point, top, right, bottom, left]
+  |> Enum.reject(&is_nil/1)
+  |> then(fn area ->
+    if Enum.min(area) == point and Enum.max(area) != point, do: point, else: nil
+  end)
+end
+|> Enum.reject(&is_nil/1)
+|> Enum.map(&(&1 + 1))
+|> Enum.sum()
+```
+
+## Part 2 First Try
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Basins do
+  defstruct mapping: %{}, x_max: 0, y_max: 0
+
+  def new(data) do
+    {x_max, y_max} = {tuple_size(elem(data, 0)) - 1, tuple_size(data) - 1}
+
+    coords =
+      for x <- 0..x_max,
+          y <- 0..y_max do
+        {x, y}
+      end
+
+    mapping =
+      coords
+      |> Enum.reduce(%{}, fn {x, y}, acc ->
+        Map.put(acc, {x, y}, {get_bin({x, y}, data), 0})
+      end)
+
+    %Basins{mapping: mapping, x_max: x_max, y_max: y_max}
+  end
+
+  def find_basins(basins) do
+    basins
+    |> find_basins(next_basin(basins))
+  end
+
+  def find_basins(basins, {nil, _}), do: basins
+
+  def find_basins(basins, {locale, value}) do
+    {{x, y}, _} = locale
+
+    marked_basins =
+      get_area({x, y}, basins)
+      |> mark_basin(value, basins)
+
+    marked_basins
+    |> find_basins(next_basin(marked_basins))
+  end
+
+  defp mark_basin([], _, basins), do: basins
+
+  defp mark_basin(nodes, value, basins) do
+    mapping =
+      Enum.reduce(nodes, basins.mapping, fn {{x, y}, _}, acc ->
+        Map.put(acc, {x, y}, {1, value})
+      end)
+
+    marked_basins = Map.put(basins, :mapping, mapping)
+
+    nodes
+    |> Enum.map(fn {{x, y}, _} -> get_area({x, y}, marked_basins) end)
+    |> List.flatten()
+    |> Enum.dedup()
+    |> mark_basin(value, marked_basins)
+  end
+
+  defp get_area({x, y}, basins) do
+    up = get_node({x, y - 1}, basins)
+    right = get_node({x + 1, y}, basins)
+    down = get_node({x, y + 1}, basins)
+    left = get_node({x - 1, y}, basins)
+
+    [up, right, down, left]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.reject(fn {_, {bin, val}} ->
+      bin == 0 or val > 0
+    end)
+  end
+
+  defp get_node({x, y}, basins) do
+    %{mapping: mapping, x_max: x_max, y_max: y_max} = basins
+
+    cond do
+      x > x_max -> nil
+      y > y_max -> nil
+      x < 0 -> nil
+      y < 0 -> nil
+      true -> {{x, y}, mapping[{x, y}]}
+    end
+  end
+
+  defp next_basin(%{mapping: mapping}) do
+    high_val =
+      mapping
+      |> Enum.map(fn {_, {_, val}} -> val end)
+      |> Enum.max()
+
+    locale =
+      mapping
+      |> Enum.sort()
+      |> Enum.find(fn {_, {bin, val}} ->
+        {bin, val} == {1, 0}
+      end)
+
+    {locale, high_val + 1}
+  end
+
+  defp get_bin({x, y}, data) do
+    n = data |> elem(y) |> elem(x)
+    if n < 9, do: 1, else: 0
+  end
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+basins =
+  Basins.new(heightmap)
+  |> Basins.find_basins()
+
+basins.mapping
+|> Enum.map(fn {_, {_, val}} -> val end)
+|> Enum.reject(&(&1 == 0))
+|> Enum.frequencies()
+|> Map.values()
+|> Enum.sort()
+|> Enum.slice(-3, 3)
+|> Enum.product()
+```

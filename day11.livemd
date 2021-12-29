@@ -1,0 +1,246 @@
+# Day 11
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+<details>
+  <summary>
+    Example input:
+  </summary>
+
+  ```
+5483143223
+2745854711
+5264556173
+6141336146
+6357385478
+4167524645
+2176841721
+6882881134
+4846848554
+5283751526
+  ```
+</details>
+
+<!-- livebook:{"break_markdown":true} -->
+
+<details>
+  <summary>
+    Real input:
+  </summary>
+
+  ```
+6617113584
+6544218638
+5457331488
+1135675587
+1221353216
+1811124378
+1387864368
+4427637262
+6778645486
+3682146745
+  ```
+</details>
+
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Process Input
+
+```elixir
+lines =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+
+grid =
+  for {line, row} <- Enum.with_index(lines),
+      {number, col} <- Enum.with_index(String.split(line, "", trim: true)),
+      into: %{} do
+    {{row, col}, {String.to_integer(number), false}}
+  end
+
+""
+```
+
+## Part 1 Module First Try
+
+```elixir
+defmodule Octopuses do
+  def run(grid, steps \\ 1) do
+    grow(grid, steps, 0)
+  end
+
+  defp grow(_grid, 0, count) do
+    count
+  end
+
+  defp grow(grid, steps, count) do
+    {new_grid, new_count} =
+      grid
+      |> Map.map(fn {_key, {val, flashed}} -> {val + 1, flashed} end)
+      |> process()
+
+    grow(new_grid, steps - 1, count + new_count)
+  end
+
+  defp process(grid) do
+    Enum.filter(grid, fn {_key, {val, flashed}} -> val > 9 and !flashed end)
+    |> flash(grid)
+  end
+
+  defp flash([], grid) do
+    flashcount =
+      for {_point, status} <- grid,
+          {_val, true} <- [status] do
+        1
+      end
+      |> Enum.sum()
+
+    grid =
+      Map.map(grid, fn {_point, {_val, flashed} = status} ->
+        if flashed, do: {0, false}, else: status
+      end)
+
+    {grid, flashcount}
+  end
+
+  defp flash(flashes, grid) do
+    grid =
+      Enum.reduce(flashes, grid, fn {point, {val, _flashed}}, acc ->
+        Map.put(acc, point, {val, true})
+      end)
+
+    flashpoints =
+      for {{x, y}, _status} <- flashes do
+        [
+          {x - 1, y - 1},
+          {x, y - 1},
+          {x + 1, y - 1},
+          {x - 1, y},
+          {x + 1, y},
+          {x - 1, y + 1},
+          {x, y + 1},
+          {x + 1, y + 1}
+        ]
+      end
+      |> List.flatten()
+
+    Enum.reduce(flashpoints, grid, fn point, acc ->
+      Map.get_and_update(acc, point, fn status ->
+        if is_nil(status) do
+          :pop
+        else
+          {val, flashed} = status
+          {status, {val + 1, flashed}}
+        end
+      end)
+      |> elem(1)
+    end)
+    |> process()
+  end
+end
+```
+
+## Part 1 exec
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+grid
+|> Octopuses.run(100)
+```
+
+## Part 2 Module First Try
+
+```elixir
+defmodule Octopus do
+  def run(grid) do
+    grow(grid, 1)
+  end
+
+  defp grow(grid, step) do
+    {new_grid, count} =
+      grid
+      |> Map.map(fn {_key, {val, flashed}} -> {val + 1, flashed} end)
+      |> process()
+
+    if count == Enum.count(grid) do
+      step
+    else
+      grow(new_grid, step + 1)
+    end
+  end
+
+  defp process(grid) do
+    Enum.filter(grid, fn {_key, {val, flashed}} -> val > 9 and !flashed end)
+    |> flash(grid)
+  end
+
+  defp flash([], grid) do
+    flashcount =
+      for {_point, status} <- grid,
+          {_val, true} <- [status] do
+        1
+      end
+      |> Enum.sum()
+
+    grid =
+      Map.map(grid, fn {_point, {_val, flashed} = status} ->
+        if flashed, do: {0, false}, else: status
+      end)
+
+    {grid, flashcount}
+  end
+
+  defp flash(flashes, grid) do
+    grid =
+      Enum.reduce(flashes, grid, fn {point, {val, _flashed}}, acc ->
+        Map.put(acc, point, {val, true})
+      end)
+
+    flashpoints =
+      for {{x, y}, _status} <- flashes do
+        [
+          {x - 1, y - 1},
+          {x, y - 1},
+          {x + 1, y - 1},
+          {x - 1, y},
+          {x + 1, y},
+          {x - 1, y + 1},
+          {x, y + 1},
+          {x + 1, y + 1}
+        ]
+      end
+      |> List.flatten()
+
+    Enum.reduce(flashpoints, grid, fn point, acc ->
+      Map.get_and_update(acc, point, fn status ->
+        if is_nil(status) do
+          :pop
+        else
+          {val, flashed} = status
+          {status, {val + 1, flashed}}
+        end
+      end)
+      |> elem(1)
+    end)
+    |> process()
+  end
+end
+```
+
+## Part 2 exec
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Octopus.run(grid)
+```

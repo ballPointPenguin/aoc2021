@@ -316,7 +316,7 @@ basins.mapping
 |> Enum.product()
 ```
 
-## Process Input Refactor w/ Jose
+## Process Input Jose Way
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
@@ -344,7 +344,7 @@ low_points =
 nil
 ```
 
-## Part 1 Refactor w/ Jose
+## Part 1 Jose Way
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
@@ -354,7 +354,7 @@ low_points
 |> Enum.sum()
 ```
 
-## Part 2 Refactor w/ Jose
+## Part 2 Jose Way
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
@@ -394,6 +394,8 @@ end)
 Source 1: https://github.com/miladamilli/Advent_of_Code_2021/blob/master/day09.livemd
 
 Source 2: https://github.com/madlep/aoc_2021_elixir_livebook/blob/main/day09.livemd
+
+Jose: https://github.com/josevalim/aoc/blob/main/2021/day-09.livemd
 
 ```elixir
 alias VegaLite, as: Vl

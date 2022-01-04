@@ -1,0 +1,9 @@
+# Day 13
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```

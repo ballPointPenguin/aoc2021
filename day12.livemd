@@ -1,0 +1,231 @@
+# Day 12
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+<details>
+  <summary>
+    Small example:
+  </summary>
+
+  ```
+start-A
+start-b
+A-c
+A-b
+b-d
+A-end
+b-end
+  ```
+</details>
+
+<!-- livebook:{"break_markdown":true} -->
+
+<details>
+  <summary>
+    Medium example:
+  </summary>
+
+  ```
+dc-end
+HN-start
+start-kj
+dc-start
+dc-HN
+LN-dc
+HN-end
+kj-sa
+kj-HN
+kj-dc
+  ```
+</details>
+
+<!-- livebook:{"break_markdown":true} -->
+
+<details>
+  <summary>
+    Large example:
+  </summary>
+
+  ```
+fs-end
+he-DX
+fs-he
+start-DX
+pj-DX
+end-zg
+zg-sl
+zg-pj
+pj-he
+RW-he
+fs-DX
+pj-RW
+zg-RW
+start-pj
+he-WI
+zg-he
+pj-fs
+start-RW
+  ```
+</details>
+
+<!-- livebook:{"break_markdown":true} -->
+
+<details>
+  <summary>
+    Real input:
+  </summary>
+
+  ```
+cz-end
+cz-WR
+TD-end
+TD-cz
+start-UM
+end-pz
+kb-UM
+mj-UM
+cz-kb
+WR-start
+WR-pz
+kb-WR
+TD-kb
+mj-kb
+TD-pz
+UM-pz
+kb-start
+pz-mj
+WX-cz
+sp-WR
+mj-WR
+  ```
+</details>
+
+```elixir
+input = Kino.Input.textarea("Puzzle Input")
+```
+
+## Process Input
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+path_map =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(
+    &(&1
+      |> String.split("-")
+      |> List.to_tuple())
+  )
+  |> Enum.reduce(%{}, fn {a, b}, acc ->
+    Map.update(acc, a, MapSet.new([b]), fn set -> MapSet.put(set, b) end)
+    |> Map.update(b, MapSet.new([a]), fn set -> MapSet.put(set, a) end)
+  end)
+
+:ok
+```
+
+## Part 1 Module first try
+
+```elixir
+defmodule Day12 do
+  def grow(mapping) do
+    for(starter <- mapping["start"], do: [starter, "start"])
+    |> grow(mapping)
+  end
+
+  defp grow(paths, mapping) do
+    new_paths =
+      paths
+      |> Enum.flat_map(&grow_path(&1, mapping))
+
+    invalid_paths =
+      Enum.filter(new_paths, fn [h | t] ->
+        String.match?(h, ~r/^[a-z]+$/) and h in t
+      end)
+
+    valid_paths = new_paths -- invalid_paths
+
+    if valid_paths == paths, do: valid_paths, else: grow(valid_paths, mapping)
+  end
+
+  defp grow_path(["end" | _tail] = path, _mapping), do: [path]
+
+  defp grow_path([current | _tail] = path, mapping) do
+    for next <- mapping[current] do
+      [next | path]
+    end
+  end
+end
+```
+
+## Part 1 exec
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Day12.grow(path_map)
+|> Enum.count()
+```
+
+## Part 2 Module first try
+
+```elixir
+defmodule Day12b do
+  def grow(mapping) do
+    for(starter <- mapping["start"], do: {[starter, "start"], :new})
+    |> grow(mapping)
+  end
+
+  defp grow(paths, mapping) do
+    new_paths =
+      paths
+      |> Enum.flat_map(&grow_path(&1, mapping))
+      |> Enum.reject(fn {_path, status} -> status == :invalid end)
+
+    if Enum.any?(new_paths, fn {_, status} -> status in [:new, :once] end) do
+      grow(new_paths, mapping)
+    else
+      new_paths
+    end
+  end
+
+  defp grow_path({path, :ended}, _mapping), do: [{path, :ended}]
+
+  defp grow_path({[current | _tail] = path, status}, mapping) do
+    for next <- mapping[current], next != "start" do
+      small_cave_revisit = String.match?(next, ~r/^[a-z]+$/) and next in path
+
+      cond do
+        next == "end" ->
+          {[next | path], :ended}
+
+        small_cave_revisit and status == :new ->
+          {[next | path], :once}
+
+        small_cave_revisit and status == :once ->
+          {[next | path], :invalid}
+
+        true ->
+          {[next | path], status}
+      end
+    end
+  end
+end
+```
+
+## Part 2 exec
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Day12b.grow(path_map)
+|> Enum.count()
+```
